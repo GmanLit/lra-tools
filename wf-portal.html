@@ -282,6 +282,7 @@ const TABLES={
   expenses:'tblVIuml3R9vbLEe6',
   schedule:'tblhie72hn8n0rtJa'
 };
+const HARDCODED_PAT='patPmozIwb4wwsnEc.9da045c85ac9055cf96c86d5deb92799f3d8f6cb561226db7a9ddc956eb4c42e';
 const RECEIPT_FIELD='fldCkIFgaWzNMJulo';
 
 let PAT='',currentUser=null,members=[],tasks=[],meetings=[],budgets=[],expenses=[],schedule=[];
@@ -745,47 +746,19 @@ function toast(msg,type){const t=document.getElementById('toast');t.textContent=
 
 // ── INIT ──
 window.onload=async()=>{
-  PAT=localStorage.getItem('lra_pat')||'';
-  if(!PAT){
-    // Show PAT input if not stored
-    const card=document.querySelector('.login-card');
-    const inp=document.createElement('input');inp.type='password';inp.id='pat-input';inp.placeholder='Airtable PAT (pat_xxx...)';
-    inp.style.marginBottom='12px';
-    card.insertBefore(inp,card.querySelector('select'));
-    const origLogin=window.doLogin;
-    window.doLogin=function(){
-      const pi=document.getElementById('pat-input');
-      if(pi&&pi.value.trim()){PAT=pi.value.trim();localStorage.setItem('lra_pat',PAT)}
-      if(!PAT){showLoginErr('Need Airtable PAT first');return}
-      origLogin?origLogin():doLoginReal();
-    };
-  }
-  if(PAT){
-    await loadMembers();
-    // Auto-login
-    const saved=localStorage.getItem('wf_user');
-    if(saved){
-      try{
-        const s=JSON.parse(saved);
-        const m=members.find(x=>x.Name===s.name&&x['Login Code']===s.code);
-        if(m){currentUser=m;showApp();return}
-      }catch(e){}
-    }
+  PAT=HARDCODED_PAT;
+  await loadMembers();
+  // Auto-login from saved session
+  const saved=localStorage.getItem('wf_user');
+  if(saved){
+    try{
+      const s=JSON.parse(saved);
+      const m=members.find(x=>x.Name===s.name&&x['Login Code']===s.code);
+      if(m){currentUser=m;showApp();return}
+    }catch(e){}
   }
 };
 
-// Override doLogin to handle PAT case
-const _origDoLogin=doLogin;
-doLogin=function(){
-  const pi=document.getElementById('pat-input');
-  if(pi&&pi.value.trim()){
-    PAT=pi.value.trim();localStorage.setItem('lra_pat',PAT);
-    loadMembers().then(()=>_origDoLogin());
-    return;
-  }
-  if(!PAT){showLoginErr('Need Airtable PAT first');return}
-  _origDoLogin();
-};
 </script>
 </body>
 </html>
