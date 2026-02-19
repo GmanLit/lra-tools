@@ -119,6 +119,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .empty .icon{font-size:36px;margin-bottom:10px}
 .empty p{font-size:13px}
 
+/* OWNER PICKER */
+.owner-picker{position:relative;display:inline-block}
+.owner-btn{padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--accent2);font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.owner-btn:hover{border-color:var(--accent)}
+.owner-dropdown{position:absolute;top:100%;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px;z-index:50;min-width:160px;display:none;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.owner-dropdown.open{display:block}
+.owner-dropdown label{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:4px;font-size:11px;color:var(--text);cursor:pointer;white-space:nowrap}
+.owner-dropdown label:hover{background:var(--surface2)}
+.owner-dropdown input[type=checkbox]{accent-color:var(--accent2)}
+
 /* TOAST */
 .toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--accent2);color:var(--accent2);padding:10px 18px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;z-index:300;transform:translateY(100px);opacity:0;transition:all .3s}
 .toast.show{transform:translateY(0);opacity:1}
@@ -343,7 +353,7 @@ async function fetchRecs(tableId,fields){
 
 async function loadAllData(){
   const [t,m,b,e,s]=await Promise.all([
-    fetchRecs(TABLES.tasks,['Task','Status','Priority','Owner','Category','Due Date','Source','Source Date','Notes','GitHub Issue']),
+    fetchRecs(TABLES.tasks,['Task','Status','Priority','Owner','Owners','Category','Due Date','Source','Source Date','Notes','GitHub Issue']),
     fetchRecs(TABLES.meetings,['Meeting Title','Date','Attendees','Summary','Key Decisions','Action Items']),
     fetchRecs(TABLES.budgets,['Budget Name','Category','Total Budget','Status','Start Date','End Date','Notes']),
     fetchRecs(TABLES.expenses,['Description','Amount','Date','Paid By','Category','Budget','Receipt','Status','Notes']),
@@ -356,7 +366,7 @@ async function loadAllData(){
   schedule=s.map(r=>({id:r.id,...r.fields}));
 
   // Populate owner filter
-  const owners=[...new Set(tasks.map(t=>t.Owner).filter(Boolean))];
+  const owners=[...new Set(tasks.flatMap(t=>t.Owners||[]).filter(Boolean))];
   const sel=document.getElementById('task-filter-owner');
   sel.innerHTML='<option value="">All Owners</option>';
   owners.forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;sel.appendChild(op)});
@@ -371,7 +381,7 @@ async function loadAllData(){
 
 // ── DASHBOARD ──
 function renderDashboard(){
-  const myTasks=tasks.filter(t=>t.Owner===currentUser.Name||t.Owner==='Team');
+  const myTasks=tasks.filter(t=>(t.Owners&&t.Owners.includes(currentUser.Name))||(!t.Owners||!t.Owners.length));
   const open=myTasks.filter(t=>t.Status!=='Done');
   const urgent=myTasks.filter(t=>t.Priority==='🔴 Urgent'&&t.Status!=='Done');
   const totalExp=expenses.reduce((s,e)=>(s+(e.Amount||0)),0);
@@ -422,7 +432,7 @@ function renderTasks(){
   const fo=document.getElementById('task-filter-owner').value;
   let f=tasks;
   if(fs)f=f.filter(t=>t.Status===fs);
-  if(fo)f=f.filter(t=>t.Owner===fo);
+  if(fo)f=f.filter(t=>t.Owners&&t.Owners.includes(fo));
   f.sort(priSort);
   document.getElementById('task-count').textContent=f.length+' tasks';
   const list=document.getElementById('task-list');
@@ -434,21 +444,31 @@ function taskCard(t){
   const sc=statusClass(t.Status),pc=priClass(t.Priority);
   const due=t['Due Date']?fmtDate(t['Due Date']):'';
   const overdue=t['Due Date']&&t.Status!=='Done'&&new Date(t['Due Date'])<new Date();
+  const owners=t.Owners||[];
+  const ownerLabel=owners.length?owners.join(', '):'TBD';
+  const allChoices=[...members.map(m=>m.Name),'Team','Band','TBD'];
+  const checkboxes=allChoices.map(c=>'<label><input type="checkbox" '+(owners.includes(c)?'checked':'')+' onchange="toggleOwner(\''+t.id+'\',\''+esc(c)+'\',this.checked)"/> '+esc(c)+'</label>').join('');
   return`<div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-      <div class="card-title">${esc(t.Task||'Untitled')}</div>
-      <select class="status-select" onchange="updateTaskStatus('${t.id}',this.value)">
-        <option ${t.Status==='To Do'?'selected':''}>To Do</option>
-        <option ${t.Status==='In Progress'?'selected':''}>In Progress</option>
-        <option ${t.Status==='Blocked'?'selected':''}>Blocked</option>
-        <option ${t.Status==='Done'?'selected':''}>Done</option>
-      </select>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+      <div class="card-title" style="flex:1;min-width:200px">${esc(t.Task||'Untitled')}</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <div class="owner-picker">
+          <div class="owner-btn" onclick="this.nextElementSibling.classList.toggle('open')">${esc(ownerLabel)}</div>
+          <div class="owner-dropdown">${checkboxes}</div>
+        </div>
+        <select class="status-select" onchange="updateTaskStatus('${t.id}',this.value)">
+          <option ${t.Status==='To Do'?'selected':''}>To Do</option>
+          <option ${t.Status==='In Progress'?'selected':''}>In Progress</option>
+          <option ${t.Status==='Blocked'?'selected':''}>Blocked</option>
+          <option ${t.Status==='Done'?'selected':''}>Done</option>
+        </select>
+      </div>
     </div>
     <div class="card-meta">
       <span class="badge ${sc}">${t.Status||'To Do'}</span>
       <span class="badge ${pc}">${t.Priority||'Normal'}</span>
       ${t.Category?'<span class="badge b-category">'+esc(t.Category)+'</span>':''}
-      ${t.Owner?'<span class="badge" style="background:var(--accent2)15;color:var(--accent2)">'+esc(t.Owner)+'</span>':''}
+      ${owners.map(o=>'<span class="badge" style="background:var(--accent2)15;color:var(--accent2)">'+esc(o)+'</span>').join('')}
       ${due?'<span class="badge" style="background:'+(overdue?'var(--danger)20;color:var(--danger)':'var(--border);color:var(--dim)')+'">📅 '+due+'</span>':''}
     </div>
     ${t.Notes?'<div style="font-size:12px;color:var(--dim);margin-top:4px;white-space:pre-wrap;max-height:60px;overflow:hidden">'+esc(t.Notes)+'</div>':''}
@@ -469,6 +489,34 @@ async function updateTaskStatus(id,status){
     toast('Status updated ✓');
     renderDashboard();
   }catch(e){toast('Error updating status','error')}
+}
+
+async function updateTaskField(id,field,value){
+  try{
+    await fetch(`https://api.airtable.com/v0/${B}/${TABLES.tasks}/${id}`,{
+      method:'PATCH',headers:{Authorization:'Bearer '+PAT,'Content-Type':'application/json'},
+      body:JSON.stringify({fields:{[field]:value}})
+    });
+    const t=tasks.find(x=>x.id===id);if(t)t[field]=value;
+    toast(field+' updated ✓');
+  }catch(e){toast('Error updating '+field,'error')}
+}
+
+async function toggleOwner(id,name,checked){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  let owners=t.Owners?[...t.Owners]:[];
+  if(checked&&!owners.includes(name))owners.push(name);
+  if(!checked)owners=owners.filter(o=>o!==name);
+  try{
+    await fetch(`https://api.airtable.com/v0/${B}/${TABLES.tasks}/${id}`,{
+      method:'PATCH',headers:{Authorization:'Bearer '+PAT,'Content-Type':'application/json'},
+      body:JSON.stringify({fields:{Owners:owners}})
+    });
+    t.Owners=owners;
+    // Re-render the owner button label
+    const cards=document.querySelectorAll('.owner-btn');
+    toast('Owners updated ✓');
+  }catch(e){toast('Error updating owners','error')}
 }
 
 async function saveTaskNote(id){
@@ -745,6 +793,7 @@ function esc(s){if(!s)return'';const d=document.createElement('div');d.textConte
 function toast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(type==='error'?' error':'')+' show';setTimeout(()=>t.classList.remove('show'),3000)}
 
 // ── INIT ──
+document.addEventListener('click',e=>{if(!e.target.closest('.owner-picker'))document.querySelectorAll('.owner-dropdown.open').forEach(d=>d.classList.remove('open'))});
 window.onload=async()=>{
   PAT=HARDCODED_PAT;
   await loadMembers();
