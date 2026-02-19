@@ -195,6 +195,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div id="dash-schedule"></div>
   <div class="section-title" style="margin:16px 0 10px;font-size:12px">Your Open Tasks</div>
   <div id="dash-tasks"></div>
+  <div class="section-title" style="margin:16px 0 10px;font-size:12px">All Open Tasks</div>
+  <div id="dash-all-tasks"></div>
   <div class="section-title" style="margin:16px 0 10px;font-size:12px">Recent Meetings</div>
   <div id="dash-meetings"></div>
 </div>
@@ -562,11 +564,19 @@ function renderDashboard(){
   if(!todayEvents.length){ds.innerHTML='<div class="empty" style="padding:16px"><div class="icon">📅</div><p>Nothing on the calendar today</p></div>';
   }else{ds.innerHTML=todayEvents.map(e=>schedCard(e)).join('')}
 
-  // Open tasks
+  // Open tasks (yours)
   const dt=document.getElementById('dash-tasks');
-  if(!open.length){dt.innerHTML='<div class="empty"><div class="icon">🎉</div><p>All caught up!</p></div>';
+  if(!open.length){dt.innerHTML='<div class="empty" style="padding:16px"><div class="icon">🎉</div><p>All caught up!</p></div>';
   }else{
     dt.innerHTML=open.sort(priSort).slice(0,5).map(t=>taskCard(t)).join('');
+  }
+
+  // All open tasks
+  const dat=document.getElementById('dash-all-tasks');
+  const allOpen=tasks.filter(t=>t.Status!=='Done').sort(priSort);
+  if(!allOpen.length){dat.innerHTML='<div class="empty" style="padding:16px"><div class="icon">🎉</div><p>All tasks complete!</p></div>';
+  }else{
+    dat.innerHTML=allOpen.map(t=>taskCard(t)).join('');
   }
 
   // Recent meetings
