@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WF Portal">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a0a0f' width='100' height='100' rx='20'/><text x='50' y='68' text-anchor='middle' font-size='50'>🎸</text></svg>">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiV0YgUG9ydGFsIiwic2hvcnRfbmFtZSI6IldGIFBvcnRhbCIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMGEwYTBmIiwidGhlbWVfY29sb3IiOiIjMGEwYTBmIn0=">
 <title>WF Portal</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0f;--surface:#14141f;--surface2:#1c1c2e;--border:#2a2a3d;--text:#e8e8f0;--dim:#8888a0;--accent:#ff6b35;--accent2:#00d4aa;--danger:#ff3366;--warn:#f0c040;--success:#28a745;--info:#5bc0de}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
 .mono{font-family:'JetBrains Mono',monospace}
 
 /* LOGIN */
@@ -33,7 +39,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .topbar .logout:hover{border-color:var(--danger);color:var(--danger)}
 
 /* TABS */
-.tabs{display:flex;gap:2px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto}
+.tabs{display:flex;gap:2px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
 .tab{padding:10px 18px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:1px;white-space:nowrap;transition:all .2s}
 .tab:hover{color:var(--text)}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
@@ -174,6 +181,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="tab" onclick="switchTab('meetings')">🎥 Meetings</div>
   <div class="tab" onclick="switchTab('budgets')">💰 Budgets</div>
   <div class="tab" onclick="switchTab('expenses')">🧾 Expenses</div>
+  <div class="tab" onclick="switchTab('messages')">💬 Messages</div>
+  <div class="tab" onclick="switchTab('files')">📁 Files</div>
+  <div class="tab" onclick="switchTab('commissions')">💸 Commissions</div>
 </div>
 <div class="content">
 
@@ -194,6 +204,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="section-header">
     <div><div class="section-title">Schedule</div><div class="section-sub" id="schedule-range"></div></div>
     <div style="display:flex;gap:6px;align-items:center">
+      <button class="btn btn-primary" onclick="openEventModal()">+ New Event</button>
       <button class="btn btn-sm" onclick="shiftWeek(-1)">◀ Prev</button>
       <button class="btn btn-sm" onclick="goToday()">Today</button>
       <button class="btn btn-sm" onclick="shiftWeek(1)">Next ▶</button>
@@ -211,6 +222,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="section-header">
     <div><div class="section-title">Tasks</div><div class="section-sub" id="task-count"></div></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="openTaskModal()">+ New Task</button>
       <select class="status-select" id="task-filter-status" onchange="renderTasks()">
         <option value="">All Status</option><option>To Do</option><option>In Progress</option><option>Blocked</option><option>Done</option>
       </select>
@@ -241,6 +253,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="btn btn-primary" onclick="openExpenseModal()">+ New Expense</button>
   </div>
   <div id="expense-list"></div>
+</div>
+
+<!-- MESSAGES -->
+<div class="section" id="sec-messages">
+  <div class="section-header">
+    <div><div class="section-title">Messages</div><div class="section-sub" id="msg-count"></div></div>
+    <button class="btn btn-primary" onclick="openMsgModal()">✉️ New Message</button>
+  </div>
+  <div id="msg-list"></div>
+</div>
+
+<!-- FILES -->
+<div class="section" id="sec-files">
+  <div class="section-header">
+    <div><div class="section-title">Files</div><div class="section-sub" id="file-count"></div></div>
+  </div>
+  <div id="file-list"></div>
+</div>
+
+<!-- COMMISSIONS -->
+<div class="section" id="sec-commissions">
+  <div class="section-header">
+    <div><div class="section-title">Commissions</div><div class="section-sub" id="comm-summary"></div></div>
+  </div>
+  <div id="comm-list"></div>
 </div>
 
 </div>
@@ -279,6 +316,103 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 </div>
 
+<!-- NEW TASK MODAL -->
+<div class="modal-overlay" id="task-modal">
+<div class="modal">
+  <div class="modal-title">✅ New Task</div>
+  <div class="form-group"><label>Task</label><input type="text" id="new-task-name" placeholder="What needs to be done?"/></div>
+  <div class="form-row">
+    <div class="form-group"><label>Priority</label>
+      <select id="new-task-pri"><option value="🔵 Normal">🔵 Normal</option><option value="🔴 Urgent">🔴 Urgent</option><option value="🟡 High">🟡 High</option><option value="⚪ Low">⚪ Low</option></select>
+    </div>
+    <div class="form-group"><label>Category</label>
+      <select id="new-task-cat"><option value="">Select...</option>
+        <option>Booking</option><option>Marketing</option><option>Merch</option><option>Recording</option>
+        <option>Admin</option><option>Sync/Licensing</option><option>Social Media</option><option>Touring/Logistics</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Due Date</label><input type="date" id="new-task-due"/></div>
+    <div class="form-group"><label>Source</label>
+      <select id="new-task-source"><option value="Manual">Manual</option><option value="Zoom Call">Zoom Call</option><option value="Slack">Slack</option><option value="Email">Email</option></select>
+    </div>
+  </div>
+  <div class="form-group"><label>Owners</label>
+    <div id="new-task-owners" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+  </div>
+  <div class="form-group"><label>Notes</label><textarea id="new-task-notes" rows="2" placeholder="Additional details..."></textarea></div>
+  <div class="modal-actions">
+    <button class="btn" onclick="closeTaskModal()">Cancel</button>
+    <button class="btn btn-primary" id="submit-task-btn" onclick="submitTask()">Create Task</button>
+  </div>
+</div>
+</div>
+
+<!-- NEW EVENT MODAL -->
+<div class="modal-overlay" id="event-modal">
+<div class="modal">
+  <div class="modal-title">📅 New Event</div>
+  <div class="form-group"><label>Event</label><input type="text" id="new-event-name" placeholder="What's happening?"/></div>
+  <div class="form-row">
+    <div class="form-group"><label>Date</label><input type="date" id="new-event-date"/></div>
+    <div class="form-group"><label>Time</label><input type="text" id="new-event-time" placeholder="e.g. 2:00 PM"/></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Type</label>
+      <select id="new-event-type"><option value="">Select...</option>
+        <option>🎤 Show</option><option>🎙️ Interview</option><option>📰 Press</option><option>🎧 Studio</option>
+        <option>📸 Photo/Video</option><option>✈️ Travel</option><option>📋 Meeting</option><option>📱 Social Media</option>
+        <option>🎶 Rehearsal</option><option>⏰ Deadline</option><option>Other</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Status</label>
+      <select id="new-event-status"><option>Confirmed</option><option>Tentative</option></select>
+    </div>
+  </div>
+  <div class="form-group"><label>Location</label><input type="text" id="new-event-location" placeholder="Venue, address, or Zoom link"/></div>
+  <div class="form-row">
+    <div class="form-group"><label>Contact Name</label><input type="text" id="new-event-contact" placeholder="Who's the point person?"/></div>
+    <div class="form-group"><label>Contact Email</label><input type="email" id="new-event-email" placeholder="their@email.com"/></div>
+  </div>
+  <div class="form-group"><label>Who</label>
+    <div id="new-event-who" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+  </div>
+  <div class="form-group"><label>Details</label><textarea id="new-event-details" rows="2" placeholder="Additional details..."></textarea></div>
+  <div class="form-group"><label>Link</label><input type="url" id="new-event-link" placeholder="https://..."/></div>
+  <div class="modal-actions">
+    <button class="btn" onclick="closeEventModal()">Cancel</button>
+    <button class="btn btn-primary" id="submit-event-btn" onclick="submitEvent()">Create Event</button>
+  </div>
+</div>
+</div>
+
+<!-- NEW MESSAGE MODAL -->
+<div class="modal-overlay" id="msg-modal">
+<div class="modal">
+  <div class="modal-title">✉️ Send Message</div>
+  <div class="form-group"><label>Subject</label><input type="text" id="new-msg-subject" placeholder="What's this about?"/></div>
+  <div class="form-group"><label>Message</label><textarea id="new-msg-body" rows="4" placeholder="Type your question or message..."></textarea></div>
+  <div class="modal-actions">
+    <button class="btn" onclick="closeMsgModal()">Cancel</button>
+    <button class="btn btn-primary" id="submit-msg-btn" onclick="submitMessage()">Send Message</button>
+  </div>
+</div>
+</div>
+
+<!-- REPLY MODAL -->
+<div class="modal-overlay" id="reply-modal">
+<div class="modal">
+  <div class="modal-title">💬 Reply</div>
+  <div id="reply-original" style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;color:var(--dim)"></div>
+  <div class="form-group"><label>Your Reply</label><textarea id="reply-body" rows="3" placeholder="Type your reply..."></textarea></div>
+  <div class="modal-actions">
+    <button class="btn" onclick="closeReplyModal()">Cancel</button>
+    <button class="btn btn-primary" id="submit-reply-btn" onclick="submitReply()">Send Reply</button>
+  </div>
+</div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -290,12 +424,15 @@ const TABLES={
   meetings:'tblzhv44VFpMs0OAE',
   budgets:'tblmxfYZXZm7kkfiB',
   expenses:'tblVIuml3R9vbLEe6',
-  schedule:'tblhie72hn8n0rtJa'
+  schedule:'tblhie72hn8n0rtJa',
+  messages:'tblDNlpypycdkfS70',
+  files:'tblJi8NGZFLMYeFNX',
+  commissions:'tbljsK7LFd3GTZfh2'
 };
 const HARDCODED_PAT='patPmozIwb4wwsnEc.9da045c85ac9055cf96c86d5deb92799f3d8f6cb561226db7a9ddc956eb4c42e';
 const RECEIPT_FIELD='fldCkIFgaWzNMJulo';
 
-let PAT='',currentUser=null,members=[],tasks=[],meetings=[],budgets=[],expenses=[],schedule=[];
+let PAT='',currentUser=null,members=[],tasks=[],meetings=[],budgets=[],expenses=[],schedule=[],messages=[],files=[],commissions=[];
 let receiptFile=null;
 
 // ── AUTH ──
@@ -352,18 +489,24 @@ async function fetchRecs(tableId,fields){
 }
 
 async function loadAllData(){
-  const [t,m,b,e,s]=await Promise.all([
+  const [t,m,b,e,s,msg,fl,comm]=await Promise.all([
     fetchRecs(TABLES.tasks,['Task','Status','Priority','Owner','Owners','Category','Due Date','Source','Source Date','Notes','GitHub Issue']),
     fetchRecs(TABLES.meetings,['Meeting Title','Date','Attendees','Summary','Key Decisions','Action Items']),
     fetchRecs(TABLES.budgets,['Budget Name','Category','Total Budget','Status','Start Date','End Date','Notes']),
     fetchRecs(TABLES.expenses,['Description','Amount','Date','Paid By','Category','Budget','Receipt','Status','Notes']),
-    fetchRecs(TABLES.schedule,['Event','Date','Time','Type','Location','Contact','Contact Email','Who','Details','Link','Status'])
+    fetchRecs(TABLES.schedule,['Event','Date','Time','Type','Location','Contact','Contact Email','Who','Details','Link','Status']),
+    fetchRecs(TABLES.messages,['Subject','From','Date','Message','Status','Reply','Replied By']),
+    fetchRecs(TABLES.files,['Title','Category','File','Uploaded By','Date','Notes','Notify']),
+    fetchRecs(TABLES.commissions,['Description','Amount','Owed To','Status','Date Incurred','Date Paid','Payment Method','ACH / Transfer Notes','Supporting Doc','Notes'])
   ]);
   tasks=t.map(r=>({id:r.id,...r.fields}));
   meetings=m.map(r=>({id:r.id,...r.fields}));
   budgets=b.map(r=>({id:r.id,...r.fields}));
   expenses=e.map(r=>({id:r.id,...r.fields}));
   schedule=s.map(r=>({id:r.id,...r.fields}));
+  messages=msg.map(r=>({id:r.id,...r.fields}));
+  files=fl.map(r=>({id:r.id,...r.fields}));
+  commissions=comm.map(r=>({id:r.id,...r.fields}));
 
   // Populate owner filter
   const owners=[...new Set(tasks.flatMap(t=>t.Owners||[]).filter(Boolean))];
@@ -386,6 +529,9 @@ function renderDashboard(){
   const urgent=myTasks.filter(t=>t.Priority==='🔴 Urgent'&&t.Status!=='Done');
   const totalExp=expenses.reduce((s,e)=>(s+(e.Amount||0)),0);
   const pendingExp=expenses.filter(e=>e.Status==='Pending').length;
+  const isAdmin=currentUser.Role==='Admin'||currentUser.Role==='Management';
+  const newMsgs=isAdmin?messages.filter(m=>m.Status==='New').length:messages.filter(m=>m.From===currentUser.Name&&m.Status==='Replied').length;
+  const msgLabel=isAdmin?'New Messages':'Replies';
 
   document.getElementById('dash-stats').innerHTML=`
     <div class="card" style="text-align:center;border-color:var(--accent)30">
@@ -403,6 +549,10 @@ function renderDashboard(){
     <div class="card" style="text-align:center;border-color:var(--warn)30">
       <div style="font-size:28px;font-weight:700;color:var(--warn);font-family:'JetBrains Mono',monospace">${pendingExp}</div>
       <div style="font-size:11px;color:var(--dim)">Pending Receipts</div>
+    </div>
+    <div class="card" style="text-align:center;border-color:${newMsgs?'var(--accent)40':'var(--border)'}">
+      <div style="font-size:28px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace">${newMsgs}</div>
+      <div style="font-size:11px;color:var(--dim)">${msgLabel}</div>
     </div>`;
 
   // Today's schedule
@@ -706,6 +856,250 @@ async function submitExpense(){
   btn.textContent='Submit Expense';btn.disabled=false;
 }
 
+// ── FILES ──
+function renderFiles(){
+  const sorted=files.sort((a,b)=>new Date(b.Date||0)-new Date(a.Date||0));
+  document.getElementById('file-count').textContent=sorted.length+' files';
+  const list=document.getElementById('file-list');
+  if(!sorted.length){list.innerHTML='<div class="empty"><div class="icon">📁</div><p>No files shared yet</p></div>';return}
+  list.innerHTML=sorted.map(f=>{
+    const catColors={'Commission':'var(--accent2)','Contract':'var(--info)','Tax/Financial':'var(--warn)','Tour Info':'var(--accent)','Merch':'#ec4899','General':'var(--dim)'};
+    const color=catColors[f.Category]||'var(--dim)';
+    const fileList=f.File&&f.File.length?f.File:[];
+    return`<div class="card" style="border-left:3px solid ${color}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="card-title">${esc(f.Title||'Untitled')}</div>
+          <div class="card-meta">
+            ${f.Category?'<span class="badge" style="background:'+color+'20;color:'+color+'">'+esc(f.Category)+'</span>':''}
+            ${f['Uploaded By']?'<span style="font-size:11px;color:var(--dim)">from '+esc(f['Uploaded By'])+'</span>':''}
+            ${f.Date?'<span style="font-size:11px;color:var(--dim)">'+fmtDate(f.Date)+'</span>':''}
+            ${f.Notify?'<span class="badge b-urgent">NEW</span>':''}
+          </div>
+        </div>
+      </div>
+      ${f.Notes?'<div style="font-size:12px;color:var(--dim);margin-top:6px;white-space:pre-wrap">'+esc(f.Notes)+'</div>':''}
+      ${fileList.length?'<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">'+fileList.map(a=>'<a href="'+esc(a.url)+'" target="_blank" class="btn btn-sm" style="border-color:'+color+';color:'+color+'">📥 '+esc(a.filename||'Download')+'</a>').join('')+'</div>':''}
+    </div>`;
+  }).join('');
+}
+
+// ── COMMISSIONS ──
+function renderCommissions(){
+  const sorted=commissions.sort((a,b)=>{const so={'Owed':0,'Processing':1,'Paid':2};return(so[a.Status]||0)-(so[b.Status]||0)});
+  const owed=commissions.filter(c=>c.Status==='Owed').reduce((s,c)=>s+(c.Amount||0),0);
+  const paid=commissions.filter(c=>c.Status==='Paid').reduce((s,c)=>s+(c.Amount||0),0);
+  document.getElementById('comm-summary').textContent='Owed: $'+owed.toLocaleString('en-US',{minimumFractionDigits:2})+' · Paid: $'+paid.toLocaleString('en-US',{minimumFractionDigits:2});
+  const list=document.getElementById('comm-list');
+  if(!sorted.length){list.innerHTML='<div class="empty"><div class="icon">💸</div><p>No commissions tracked yet</p></div>';return}
+  list.innerHTML=sorted.map(c=>{
+    const sc=c.Status==='Owed'?'b-urgent':c.Status==='Processing'?'b-pending':'b-done';
+    const color=c.Status==='Owed'?'var(--danger)':c.Status==='Processing'?'var(--warn)':'var(--accent2)';
+    const docs=c['Supporting Doc']&&c['Supporting Doc'].length?c['Supporting Doc']:[];
+    return`<div class="card" style="border-left:3px solid ${color}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="card-title">${esc(c.Description||'Commission')}</div>
+          <div class="card-meta">
+            <span class="badge ${sc}">${c.Status||'Owed'}</span>
+            ${c['Payment Method']?'<span class="badge" style="background:var(--info)20;color:var(--info)">'+esc(c['Payment Method'])+'</span>':''}
+            ${c['Owed To']?'<span style="font-size:11px;color:var(--dim)">→ '+esc(c['Owed To'])+'</span>':''}
+            ${c['Date Incurred']?'<span style="font-size:11px;color:var(--dim)">Incurred: '+fmtDate(c['Date Incurred'])+'</span>':''}
+            ${c['Date Paid']?'<span style="font-size:11px;color:var(--accent2)">Paid: '+fmtDate(c['Date Paid'])+'</span>':''}
+          </div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:${color}">$${(c.Amount||0).toFixed(2)}</div>
+      </div>
+      ${c['ACH / Transfer Notes']?'<div style="margin-top:8px;padding:8px;background:var(--bg);border-radius:6px;border-left:3px solid var(--info)"><div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--info);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">ACH / Transfer Info</div><div style="font-size:12px;color:var(--text);white-space:pre-wrap;font-family:\'JetBrains Mono\',monospace">'+esc(c['ACH / Transfer Notes'])+'</div></div>':''}
+      ${c.Notes?'<div style="font-size:12px;color:var(--dim);margin-top:6px;white-space:pre-wrap">'+esc(c.Notes)+'</div>':''}
+      ${docs.length?'<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">'+docs.map(a=>'<a href="'+esc(a.url)+'" target="_blank" class="btn btn-sm" style="border-color:var(--accent2);color:var(--accent2)">📥 '+esc(a.filename||'Document')+'</a>').join('')+'</div>':''}
+    </div>`;
+  }).join('');
+}
+
+// ── MESSAGES ──
+let replyingTo=null;
+function renderMessages(){
+  const isAdmin=currentUser.Role==='Admin'||currentUser.Role==='Management';
+  const sorted=messages.sort((a,b)=>new Date(b.Date||0)-new Date(a.Date||0));
+  const filtered=isAdmin?sorted:sorted.filter(m=>m.From===currentUser.Name);
+  const newCount=filtered.filter(m=>m.Status==='New').length;
+  document.getElementById('msg-count').textContent=filtered.length+' messages'+(newCount?' · '+newCount+' new':'');
+  const list=document.getElementById('msg-list');
+  if(!filtered.length){list.innerHTML='<div class="empty"><div class="icon">💬</div><p>No messages yet</p></div>';return}
+  list.innerHTML=filtered.map(m=>{
+    const isNew=m.Status==='New';
+    const sc=m.Status==='New'?'b-urgent':m.Status==='Read'?'b-pending':m.Status==='Replied'?'b-done':'b-low';
+    return`<div class="card" style="${isNew?'border-color:var(--accent)40':''}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="card-title">${esc(m.Subject||'No subject')}</div>
+          <div class="card-meta">
+            <span class="badge" style="background:var(--accent2)15;color:var(--accent2)">${esc(m.From)}</span>
+            <span class="badge ${sc}">${m.Status||'New'}</span>
+            ${m.Date?'<span style="font-size:11px;color:var(--dim)">'+new Date(m.Date).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</span>':''}
+          </div>
+        </div>
+        ${isAdmin&&m.Status!=='Replied'?'<button class="btn btn-sm btn-success" onclick="openReplyModal(\''+m.id+'\')">Reply</button>':''}
+      </div>
+      <div style="font-size:13px;color:var(--text);margin-top:8px;white-space:pre-wrap;line-height:1.5">${esc(m.Message)}</div>
+      ${m.Reply?'<div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:6px;border-left:3px solid var(--accent2)"><div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Reply from '+esc(m['Replied By']||'Management')+'</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.5">'+esc(m.Reply)+'</div></div>':''}
+    </div>`;
+  }).join('');
+}
+
+function openMsgModal(){document.getElementById('msg-modal').classList.add('open')}
+function closeMsgModal(){
+  document.getElementById('msg-modal').classList.remove('open');
+  document.getElementById('new-msg-subject').value='';
+  document.getElementById('new-msg-body').value='';
+}
+
+async function submitMessage(){
+  const subject=document.getElementById('new-msg-subject').value.trim();
+  const body=document.getElementById('new-msg-body').value.trim();
+  if(!subject||!body){toast('Need subject and message','error');return}
+  const btn=document.getElementById('submit-msg-btn');btn.textContent='Sending...';btn.disabled=true;
+  const fields={
+    Subject:subject,
+    From:currentUser.Name,
+    Date:new Date().toISOString(),
+    Message:body,
+    Status:'New'
+  };
+  try{
+    const r=await fetch(`https://api.airtable.com/v0/${B}/${TABLES.messages}`,{
+      method:'POST',headers:{Authorization:'Bearer '+PAT,'Content-Type':'application/json'},
+      body:JSON.stringify({fields})
+    });
+    if(!r.ok)throw new Error('Failed');
+    const rec=await r.json();
+    messages.push({id:rec.id,...fields});
+    closeMsgModal();renderMessages();
+    toast('Message sent ✓');
+  }catch(e){toast('Error: '+e.message,'error')}
+  btn.textContent='Send Message';btn.disabled=false;
+}
+
+function openReplyModal(id){
+  const m=messages.find(x=>x.id===id);if(!m)return;
+  replyingTo=id;
+  document.getElementById('reply-original').innerHTML='<strong>'+esc(m.Subject)+'</strong> from '+esc(m.From)+'<br><br>'+esc(m.Message);
+  document.getElementById('reply-modal').classList.add('open');
+}
+function closeReplyModal(){document.getElementById('reply-modal').classList.remove('open');document.getElementById('reply-body').value='';replyingTo=null}
+
+async function submitReply(){
+  if(!replyingTo)return;
+  const body=document.getElementById('reply-body').value.trim();
+  if(!body){toast('Need a reply','error');return}
+  const btn=document.getElementById('submit-reply-btn');btn.textContent='Sending...';btn.disabled=true;
+  try{
+    await fetch(`https://api.airtable.com/v0/${B}/${TABLES.messages}/${replyingTo}`,{
+      method:'PATCH',headers:{Authorization:'Bearer '+PAT,'Content-Type':'application/json'},
+      body:JSON.stringify({fields:{Reply:body,'Replied By':currentUser.Name,Status:'Replied'}})
+    });
+    const m=messages.find(x=>x.id===replyingTo);
+    if(m){m.Reply=body;m['Replied By']=currentUser.Name;m.Status='Replied'}
+    closeReplyModal();renderMessages();
+    toast('Reply sent ✓');
+  }catch(e){toast('Error: '+e.message,'error')}
+  btn.textContent='Send Reply';btn.disabled=false;
+}
+
+// ── NEW TASK MODAL ──
+function openTaskModal(){
+  document.getElementById('task-modal').classList.add('open');
+  const cont=document.getElementById('new-task-owners');
+  const allChoices=[...members.map(m=>m.Name),'Team','Band'];
+  cont.innerHTML=allChoices.map(c=>'<label style="display:flex;align-items:center;gap:4px;background:var(--bg);padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer"><input type="checkbox" class="new-task-owner-cb" value="'+esc(c)+'"/> '+esc(c)+'</label>').join('');
+}
+function closeTaskModal(){
+  document.getElementById('task-modal').classList.remove('open');
+  document.getElementById('new-task-name').value='';
+  document.getElementById('new-task-pri').value='🔵 Normal';
+  document.getElementById('new-task-cat').value='';
+  document.getElementById('new-task-due').value='';
+  document.getElementById('new-task-notes').value='';
+}
+async function submitTask(){
+  const name=document.getElementById('new-task-name').value.trim();
+  if(!name){toast('Need a task name','error');return}
+  const btn=document.getElementById('submit-task-btn');btn.textContent='Creating...';btn.disabled=true;
+  const owners=[...document.querySelectorAll('.new-task-owner-cb:checked')].map(cb=>cb.value);
+  const fields={
+    Task:name,
+    Status:'To Do',
+    Priority:document.getElementById('new-task-pri').value,
+    Owners:owners.length?owners:['TBD'],
+    Source:document.getElementById('new-task-source').value||'Manual',
+    'Source Date':new Date().toISOString().split('T')[0]
+  };
+  const cat=document.getElementById('new-task-cat').value;if(cat)fields.Category=cat;
+  const due=document.getElementById('new-task-due').value;if(due)fields['Due Date']=due;
+  const notes=document.getElementById('new-task-notes').value;if(notes)fields.Notes=notes;
+  try{
+    const r=await fetch(`https://api.airtable.com/v0/${B}/${TABLES.tasks}`,{
+      method:'POST',headers:{Authorization:'Bearer '+PAT,'Content-Type':'application/json'},
+      body:JSON.stringify({fields})
+    });
+    if(!r.ok)throw new Error('Failed');
+    const rec=await r.json();
+    tasks.push({id:rec.id,...fields});
+    closeTaskModal();renderTasks();renderDashboard();
+    toast('Task created ✓');
+  }catch(e){toast('Error: '+e.message,'error')}
+  btn.textContent='Create Task';btn.disabled=false;
+}
+
+// ── NEW EVENT MODAL ──
+function openEventModal(){
+  document.getElementById('event-modal').classList.add('open');
+  document.getElementById('new-event-date').value=new Date().toISOString().split('T')[0];
+  const cont=document.getElementById('new-event-who');
+  const whoChoices=['Full Band',...members.map(m=>m.Name),'Team'];
+  cont.innerHTML=whoChoices.map(c=>'<label style="display:flex;align-items:center;gap:4px;background:var(--bg);padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer"><input type="checkbox" class="new-event-who-cb" value="'+esc(c)+'"/> '+esc(c)+'</label>').join('');
+}
+function closeEventModal(){
+  document.getElementById('event-modal').classList.remove('open');
+  document.getElementById('new-event-name').value='';
+  document.getElementById('new-event-time').value='';
+  document.getElementById('new-event-type').value='';
+  document.getElementById('new-event-location').value='';
+  document.getElementById('new-event-contact').value='';
+  document.getElementById('new-event-email').value='';
+  document.getElementById('new-event-details').value='';
+  document.getElementById('new-event-link').value='';
+}
+async function submitEvent(){
+  const name=document.getElementById('new-event-name').value.trim();
+  const date=document.getElementById('new-event-date').value;
+  if(!name||!date){toast('Need event name and date','error');return}
+  const btn=document.getElementById('submit-event-btn');btn.textContent='Creating...';btn.disabled=true;
+  const who=[...document.querySelectorAll('.new-event-who-cb:checked')].map(cb=>cb.value);
+  const fields={Event:name,Date:date,Status:document.getElementById('new-event-status').value||'Confirmed'};
+  const time=document.getElementById('new-event-time').value;if(time)fields.Time=time;
+  const type=document.getElementById('new-event-type').value;if(type)fields.Type=type;
+  const loc=document.getElementById('new-event-location').value;if(loc)fields.Location=loc;
+  const contact=document.getElementById('new-event-contact').value;if(contact)fields.Contact=contact;
+  const email=document.getElementById('new-event-email').value;if(email)fields['Contact Email']=email;
+  if(who.length)fields.Who=who;
+  const details=document.getElementById('new-event-details').value;if(details)fields.Details=details;
+  const link=document.getElementById('new-event-link').value;if(link)fields.Link=link;
+  try{
+    const r=await fetch(`https://api.airtable.com/v0/${B}/${TABLES.schedule}`,{
+      method:'POST',headers:{Authorization:'Bearer '+PAT,'Content-Type':'application/json'},
+      body:JSON.stringify({fields})
+    });
+    if(!r.ok)throw new Error('Failed');
+    const rec=await r.json();
+    schedule.push({id:rec.id,...fields});
+    closeEventModal();renderSchedule();renderDashboard();
+    toast('Event created ✓');
+  }catch(e){toast('Error: '+e.message,'error')}
+  btn.textContent='Create Event';btn.disabled=false;
+}
+
 // ── SCHEDULE ──
 let schedWeekStart=getMonday(new Date());
 function getMonday(d){const dt=new Date(d);const day=dt.getDay();const diff=dt.getDate()-day+(day===0?-6:1);dt.setDate(diff);dt.setHours(0,0,0,0);return dt}
@@ -776,6 +1170,9 @@ function switchTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('sec-'+name).classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>{if(t.textContent.toLowerCase().includes(name.substring(0,4)))t.classList.add('active')});
+  if(name==='messages')renderMessages();
+  if(name==='files')renderFiles();
+  if(name==='commissions')renderCommissions();
   if(name==='schedule')renderSchedule();
   if(name==='tasks')renderTasks();
   if(name==='meetings')renderMeetings();
