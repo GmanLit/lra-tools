@@ -184,6 +184,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="tab" onclick="switchTab('messages')">💬 Messages</div>
   <div class="tab" onclick="switchTab('files')">📁 Files</div>
   <div class="tab" onclick="switchTab('commissions')">💸 Commissions</div>
+  <div class="tab" onclick="switchTab('tour')">🎤 Tour Dates</div>
 </div>
 <div class="content">
 
@@ -199,6 +200,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div id="dash-all-tasks"></div>
   <div class="section-title" style="margin:16px 0 10px;font-size:12px">Recent Meetings</div>
   <div id="dash-meetings"></div>
+  <div class="section-title" style="margin:16px 0 10px;font-size:12px">Next Shows</div>
+  <div id="dash-shows"></div>
 </div>
 
 <!-- SCHEDULE -->
@@ -280,6 +283,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div><div class="section-title">Commissions</div><div class="section-sub" id="comm-summary"></div></div>
   </div>
   <div id="comm-list"></div>
+</div>
+
+<!-- TOUR DATES -->
+<div class="section" id="sec-tour">
+  <div class="section-title" style="margin-bottom:4px">🎤 Upcoming Tour Dates</div>
+  <div class="section-sub" id="tour-count" style="margin-bottom:12px"></div>
+  <div id="upcoming-list"></div>
+  <div class="section-title" style="margin:24px 0 4px">📜 Previous Plays</div>
+  <div class="section-sub" id="past-count" style="margin-bottom:12px"></div>
+  <div id="past-list"></div>
 </div>
 
 </div>
@@ -429,12 +442,13 @@ const TABLES={
   schedule:'tblhie72hn8n0rtJa',
   messages:'tblDNlpypycdkfS70',
   files:'tblJi8NGZFLMYeFNX',
-  commissions:'tbljsK7LFd3GTZfh2'
+  commissions:'tbljsK7LFd3GTZfh2',
+  oc:'tblVSk34SJps918oF'
 };
 const HARDCODED_PAT='patPmozIwb4wwsnEc.9da045c85ac9055cf96c86d5deb92799f3d8f6cb561226db7a9ddc956eb4c42e';
 const RECEIPT_FIELD='fldCkIFgaWzNMJulo';
 
-let PAT='',currentUser=null,members=[],tasks=[],meetings=[],budgets=[],expenses=[],schedule=[],messages=[],files=[],commissions=[];
+let PAT='',currentUser=null,members=[],tasks=[],meetings=[],budgets=[],expenses=[],schedule=[],messages=[],files=[],commissions=[],upcomingShows=[],pastPlays=[];
 let receiptFile=null;
 
 // ── AUTH ──
@@ -477,11 +491,12 @@ async function showApp(){
 }
 
 // ── DATA ──
-async function fetchRecs(tableId,fields){
+async function fetchRecs(tableId,fields,view){
   let all=[],offset=null;
   const fp=fields.map(f=>'fields[]='+encodeURIComponent(f)).join('&');
   do{
     let url=`https://api.airtable.com/v0/${B}/${tableId}?pageSize=100&${fp}`;
+    if(view)url+='&view='+encodeURIComponent(view);
     if(offset)url+='&offset='+offset;
     const r=await fetch(url,{headers:{Authorization:'Bearer '+PAT}});
     if(!r.ok)throw new Error('API '+r.status);
@@ -491,7 +506,8 @@ async function fetchRecs(tableId,fields){
 }
 
 async function loadAllData(){
-  const [t,m,b,e,s,msg,fl,comm]=await Promise.all([
+  const showFields=['Date','Day of Week','Venue','Venue City','Venue ST','Billing','Artist Support To','Guarantee','Tickets Sold','Sellable','Promoter','Promoter Company','Promoter Email','Advance Contact','Advance Email','Advance Cell Phone','Marketing Contact','Marketing Email','Overage','Total Payout','Merch Sold','Merch PP','Status','Artist','Tix Sold'];
+  const [t,m,b,e,s,msg,fl,comm,up,pp]=await Promise.all([
     fetchRecs(TABLES.tasks,['Task','Status','Priority','Owner','Owners','Category','Due Date','Source','Source Date','Notes','GitHub Issue']),
     fetchRecs(TABLES.meetings,['Meeting Title','Date','Attendees','Summary','Key Decisions','Action Items']),
     fetchRecs(TABLES.budgets,['Budget Name','Category','Total Budget','Status','Start Date','End Date','Notes']),
@@ -499,7 +515,9 @@ async function loadAllData(){
     fetchRecs(TABLES.schedule,['Event','Date','Time','Type','Location','Contact','Contact Email','Who','Details','Link','Status']),
     fetchRecs(TABLES.messages,['Subject','From','Date','Message','Status','Reply','Replied By']),
     fetchRecs(TABLES.files,['Title','Category','File','Uploaded By','Date','Notes','Notify']),
-    fetchRecs(TABLES.commissions,['Description','Amount','Owed To','Status','Date Incurred','Date Paid','Payment Method','ACH / Transfer Notes','Supporting Doc','Notes'])
+    fetchRecs(TABLES.commissions,['Description','Amount','Owed To','Status','Date Incurred','Date Paid','Payment Method','ACH / Transfer Notes','Supporting Doc','Notes']),
+    fetchRecs(TABLES.oc,showFields,'WF - Upcoming Shows'),
+    fetchRecs(TABLES.oc,showFields,'WF - Past Plays')
   ]);
   tasks=t.map(r=>({id:r.id,...r.fields}));
   meetings=m.map(r=>({id:r.id,...r.fields}));
@@ -509,6 +527,8 @@ async function loadAllData(){
   messages=msg.map(r=>({id:r.id,...r.fields}));
   files=fl.map(r=>({id:r.id,...r.fields}));
   commissions=comm.map(r=>({id:r.id,...r.fields}));
+  upcomingShows=up.map(r=>({id:r.id,...r.fields}));
+  pastPlays=pp.map(r=>({id:r.id,...r.fields}));
 
   // Populate owner filter
   const owners=[...new Set(tasks.flatMap(t=>t.Owners||[]).filter(Boolean))];
@@ -584,6 +604,12 @@ function renderDashboard(){
   const recent=meetings.sort((a,b)=>new Date(b.Date||0)-new Date(a.Date||0)).slice(0,3);
   if(!recent.length){dm.innerHTML='<div class="empty"><div class="icon">🎥</div><p>No meetings yet</p></div>';
   }else{dm.innerHTML=recent.map(m=>meetingCard(m,true)).join('')}
+
+  // Next shows
+  const dsh=document.getElementById('dash-shows');
+  const nextShows=upcomingShows.filter(s=>s.Artist==='Weakened Friends').sort((a,b)=>new Date(a.Date||0)-new Date(b.Date||0)).slice(0,5);
+  if(!nextShows.length){dsh.innerHTML='<div class="empty"><div class="icon">🎤</div><p>No upcoming shows</p></div>';
+  }else{dsh.innerHTML=nextShows.map(s=>showCard(s,false)).join('')}
 }
 
 // ── TASKS ──
@@ -864,6 +890,73 @@ async function submitExpense(){
     toast('Expense submitted ✓');
   }catch(e){toast('Error: '+e.message,'error')}
   btn.textContent='Submit Expense';btn.disabled=false;
+}
+
+// ── TOUR DATES ──
+function renderTour(){
+  // Upcoming
+  const upcoming=upcomingShows.filter(s=>s.Artist==='Weakened Friends').sort((a,b)=>new Date(a.Date||0)-new Date(b.Date||0));
+  document.getElementById('tour-count').textContent=upcoming.length+' upcoming shows';
+  const ul=document.getElementById('upcoming-list');
+  if(!upcoming.length){ul.innerHTML='<div class="empty"><div class="icon">🎤</div><p>No upcoming shows</p></div>';}
+  else{ul.innerHTML=upcoming.map(s=>showCard(s,false)).join('')}
+
+  // Past
+  const past=pastPlays.filter(s=>s.Artist==='Weakened Friends'&&s.Date).sort((a,b)=>new Date(b.Date||0)-new Date(a.Date||0));
+  document.getElementById('past-count').textContent=past.length+' past shows';
+  const pl=document.getElementById('past-list');
+  if(!past.length){pl.innerHTML='<div class="empty"><div class="icon">📜</div><p>No past plays found</p></div>';}
+  else{pl.innerHTML=past.map(s=>showCard(s,true)).join('')}
+}
+
+function showCard(s,isPast){
+  const d=s.Date?new Date(s.Date+'T12:00:00'):null;
+  const dateStr=d?d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}):'TBD';
+  const billing=s.Billing||'';
+  const isSupport=billing.toLowerCase().includes('support')||billing.includes('1st of')||billing.includes('2nd of')||billing.includes('3rd of');
+  const billingColor=billing==='Headline'?'var(--accent)':isSupport?'var(--accent2)':'var(--warn)';
+  const tixSold=s['Tix Sold']||s['Tickets Sold']||0;
+  const sellable=s.Sellable||0;
+  const pctSold=sellable>0?Math.round((tixSold/sellable)*100):0;
+  const pctColor=pctSold>=80?'var(--accent2)':pctSold>=50?'var(--warn)':'var(--dim)';
+
+  let details=`<div class="show-details" style="display:none;margin-top:10px;padding:10px;background:var(--bg);border-radius:6px">`;
+  // Contacts
+  details+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">`;
+  if(s.Promoter)details+=`<div><span style="color:var(--dim)">Promoter:</span> ${esc(s.Promoter)}</div>`;
+  if(s['Promoter Company'])details+=`<div><span style="color:var(--dim)">Company:</span> ${esc(s['Promoter Company'])}</div>`;
+  if(s['Promoter Email'])details+=`<div><span style="color:var(--dim)">Promoter Email:</span> <a href="mailto:${esc(s['Promoter Email'])}" style="color:var(--accent2)">${esc(s['Promoter Email'])}</a></div>`;
+  if(s['Advance Contact'])details+=`<div><span style="color:var(--dim)">Advance:</span> ${esc(s['Advance Contact'])}</div>`;
+  if(s['Advance Email'])details+=`<div><span style="color:var(--dim)">Advance Email:</span> <a href="mailto:${esc(s['Advance Email'])}" style="color:var(--accent2)">${esc(s['Advance Email'])}</a></div>`;
+  if(s['Advance Cell Phone'])details+=`<div><span style="color:var(--dim)">Advance Cell:</span> <a href="tel:${esc(s['Advance Cell Phone'])}" style="color:var(--accent2)">${esc(s['Advance Cell Phone'])}</a></div>`;
+  if(s['Marketing Contact'])details+=`<div><span style="color:var(--dim)">Marketing:</span> ${esc(s['Marketing Contact'])}</div>`;
+  if(s['Marketing Email'])details+=`<div><span style="color:var(--dim)">Marketing Email:</span> <a href="mailto:${esc(s['Marketing Email'])}" style="color:var(--accent2)">${esc(s['Marketing Email'])}</a></div>`;
+  details+=`</div></div>`;
+
+  return`<div class="card" style="border-left:3px solid ${billingColor};cursor:pointer" onclick="this.querySelector('.show-details').style.display=this.querySelector('.show-details').style.display==='none'?'block':'none'">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+      <div style="flex:1;min-width:200px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);font-weight:600">${dateStr}</div>
+        <div class="card-title" style="margin:2px 0">${esc(s.Venue||'TBD')}</div>
+        <div style="font-size:12px;color:var(--dim)">${esc(s['Venue City']||'')}${s['Venue ST']?', '+esc(s['Venue ST']):''}</div>
+      </div>
+      <div style="text-align:right">
+        <div><span class="badge" style="background:${billingColor}20;color:${billingColor}">${esc(billing)}</span></div>
+        ${isSupport&&s['Artist Support To']?'<div style="font-size:11px;color:var(--dim);margin-top:2px">w/ '+esc(s['Artist Support To'])+'</div>':''}
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:12px">
+      <div><span style="color:var(--dim)">Guarantee:</span> <span style="color:var(--accent2);font-weight:600">$${(s.Guarantee||0).toLocaleString()}</span></div>
+      ${isPast&&s.Overage?'<div><span style="color:var(--dim)">Overage:</span> <span style="color:var(--accent2)">$'+(s.Overage||0).toLocaleString()+'</span></div>':''}
+      ${isPast&&s['Total Payout']?'<div><span style="color:var(--dim)">Total Paid:</span> <span style="color:var(--accent);font-weight:700">$'+(s['Total Payout']||0).toLocaleString()+'</span></div>':''}
+      <div><span style="color:var(--dim)">Tix Sold:</span> <span style="color:${pctColor};font-weight:600">${tixSold}</span><span style="color:var(--border)"> / ${sellable}</span></div>
+      ${!isPast&&sellable>0?'<div style="background:var(--surface2);padding:1px 6px;border-radius:3px"><span style="color:'+pctColor+'">'+pctSold+'% sold</span></div>':''}
+      ${isPast&&s['Merch Sold']?'<div><span style="color:var(--dim)">Merch:</span> <span style="color:var(--warn)">$'+(s['Merch Sold']||0).toLocaleString()+'</span></div>':''}
+      ${isPast&&s['Merch PP']&&typeof s['Merch PP']==='number'&&isFinite(s['Merch PP'])?'<div><span style="color:var(--dim)">Merch PP:</span> $'+s['Merch PP'].toFixed(2)+'</div>':''}
+    </div>
+    ${details}
+    <div style="text-align:center;margin-top:6px;font-size:10px;color:var(--border);font-family:'JetBrains Mono',monospace">TAP FOR CONTACTS ▾</div>
+  </div>`;
 }
 
 // ── FILES ──
@@ -1183,6 +1276,7 @@ function switchTab(name){
   if(name==='messages')renderMessages();
   if(name==='files')renderFiles();
   if(name==='commissions')renderCommissions();
+  if(name==='tour')renderTour();
   if(name==='schedule')renderSchedule();
   if(name==='tasks')renderTasks();
   if(name==='meetings')renderMeetings();
